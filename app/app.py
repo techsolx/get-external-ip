@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import apistar
+# import apistar
 import datetime
 import ipaddress
 import logging
@@ -24,7 +24,7 @@ formatter = logging.Formatter(
         '%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -32,6 +32,7 @@ sites_path = r"../sitestocheck/"
 db_path = r"../db/"
 db_file = "addresschanges.db"
 database = os.path.join(dir_path, db_path, db_file)
+reporting_site = "https://checkip.amazonaws.com"
 
 
 # From https://www.sqlitetutorial.net/sqlite-python/create-tables/
@@ -116,7 +117,8 @@ def get_ip(site):
     try:
         req = urllib.request.Request(site)
         response = urllib.request.urlopen(req)
-        target_ip = response.read().decode("utf-8")
+        target_ip = response.read().decode("utf-8").rstrip()
+        logger.debug(f"target_ip -> {target_ip}")
         try:
             ipaddress.IPv4Address(target_ip)
             return target_ip
@@ -129,16 +131,17 @@ def get_ip(site):
 
 def main():
     create_db(database)
+    logger.debug(f"Creating database from main using {database}")
 
     if is_connected():
-        found_ip = get_ip("https://api.ipify.org/")
+        found_ip = get_ip(reporting_site)
         conn = create_connection(database)
 
     with conn:
         timestamp = datetime.datetime.now()
-        entry = (found_ip, timestamp, "ipify.org")
-        create_entry(conn, entry)
-        logger.INFO(f"entry is {entry}")
+        entry = (found_ip, timestamp, reporting_site)
+        ipaddress_id = create_entry(conn, entry)
+        logger.info(f"entry is {entry}")
 
 
 if __name__ == "__main__":

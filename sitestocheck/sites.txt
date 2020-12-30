@@ -1,2 +1,3 @@
+https://checkip.amazonaws.com
 https://ipv4bot.whatismyipaddress.com
 https://api.ipify.org
